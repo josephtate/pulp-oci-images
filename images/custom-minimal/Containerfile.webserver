@@ -1,0 +1,48 @@
+ARG FROM_TAG="stable"
+
+FROM quay.io/pulp/pulp-minimal:${FROM_TAG} as builder
+
+RUN mkdir -p /etc/nginx/pulp \
+             /www/data
+RUN ln $(pip3 show pulp_ansible | sed -n -e 's/Location: //p')/pulp_ansible/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_ansible.conf \
+    && ln $(pip3 show pulp_container | sed -n -e 's/Location: //p')/pulp_container/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_container.conf \
+    && ln $(pip3 show pulp_python | sed -n -e 's/Location: //p')/pulp_python/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_python.conf
+
+
+FROM docker.io/nginx:latest
+
+ARG PULP_UI_URL="https://github.com/pulp/pulp-ui/releases/download/v0.1.22/pulp-ui-2025-01-16.tar.gz"
+ARG NGINX_WEBROOT="/usr/share/nginx/html"
+
+RUN mkdir -p /var/cache/nginx /etc/nginx/pulp \
+    && touch /var/run/nginx.pid \
+    && chown -R nginx:nginx /var/cache/nginx /var/run/nginx.pid
+
+COPY --from=builder /etc/nginx/pulp/*.conf /etc/nginx/pulp
+
+# install the pulp ui
+RUN <<EOF
+#!/bin/sh -ex
+
+# disable the default.conf
+mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.disabled
+
+PULP_UI_ROOT=$NGINX_WEBROOT/static/pulp_ui
+
+mkdir -p $PULP_UI_ROOT
+curl -Ls ${PULP_UI_URL} | tar -xzv -C $PULP_UI_ROOT
+cat <<CONFIGJSON > $NGINX_WEBROOT/pulp-ui-config.json
+{
+  "API_BASE_PATH": "/pulp/api/v3/",
+  "UI_BASE_PATH": "/static/pulp_ui/",
+  "UI_EXTERNAL_LOGIN_URI": null,
+  "EXTRA_VERSION": "ciq-custom"
+}
+
+CONFIGJSON
+
+EOF
+
+# Run script uses standard ways to run the application
+USER nginx:nginx
+CMD nginx -g "daemon off;"
