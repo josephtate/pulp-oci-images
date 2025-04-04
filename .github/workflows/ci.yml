@@ -51,14 +51,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       base_cache_key: "${{ steps.build_base_images.outputs.base_cache_key }}"
+      rebuilt_images: "${{ steps.build_base_images.outputs.rebuilt_images }}"
     steps:
       - uses: actions/checkout@v4
 
       - name: Build base images
         id: build_base_images
         uses: "./.github/actions/base_images"
-        with:
-          python_version: "3.9"
 
   app-images:
     needs: base-images
