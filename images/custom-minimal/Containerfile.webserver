@@ -3,15 +3,15 @@ ARG FROM_TAG="stable"
 FROM quay.io/pulp/pulp-minimal:${FROM_TAG} as builder
 
 RUN mkdir -p /etc/nginx/pulp \
-             /www/data
-RUN ln $(pip3 show pulp_ansible | sed -n -e 's/Location: //p')/pulp_ansible/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_ansible.conf \
-    && ln $(pip3 show pulp_container | sed -n -e 's/Location: //p')/pulp_container/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_container.conf \
-    && ln $(pip3 show pulp_python | sed -n -e 's/Location: //p')/pulp_python/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_python.conf
+             /www/data \
+  && ln $(pip show pulp_ansible | sed -n -e 's/Location: //p')/pulp_ansible/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_ansible.conf \
+  && ln $(pip show pulp_container | sed -n -e 's/Location: //p')/pulp_container/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_container.conf \
+  && ln $(pip show pulp_python | sed -n -e 's/Location: //p')/pulp_python/app/webserver_snippets/nginx.conf /etc/nginx/pulp/pulp_python.conf
 
 
 FROM docker.io/nginx:latest
 
-ARG PULP_UI_URL="https://github.com/pulp/pulp-ui/releases/download/v0.1.22/pulp-ui-2025-01-16.tar.gz"
+ARG PULP_UI_URL="https://github.com/pulp/pulp-ui/releases/download/v0.1.27/pulp-ui-2026-11-02.tar.gz"
 ARG NGINX_WEBROOT="/usr/share/nginx/html"
 
 RUN mkdir -p /var/cache/nginx /etc/nginx/pulp \
