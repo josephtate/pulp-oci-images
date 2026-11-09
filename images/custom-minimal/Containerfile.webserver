@@ -14,8 +14,19 @@ FROM docker.io/nginx:latest
 ARG PULP_UI_URL="https://github.com/pulp/pulp-ui/releases/download/v0.1.27/pulp-ui-2026-11-02.tar.gz"
 ARG NGINX_WEBROOT="/usr/share/nginx/html"
 
-RUN mkdir -p /var/cache/nginx /etc/nginx/pulp \
+RUN mkdir -p /var/cache/nginx/client_temp \
+             /var/cache/nginx/proxy_temp \
+             /var/cache/nginx/fastcgi_temp \
+             /var/cache/nginx/uwsgi_temp \
+             /var/cache/nginx/scgi_temp \
+             /etc/nginx/pulp \
     && touch /var/run/nginx.pid \
+    # Chowned to the image's native nginx user (UID/GID 101). This requires
+    # pulp-operator's `web.pod_security_context` CR override to be set to
+    # `runAsUser: 101, fsGroup: 101` -- without it, the operator's default
+    # (runAsUser/fsGroup 700) cannot write here and nginx fails with
+    # "mkdir() ... Permission denied" at startup. See
+    # docs/admin/guides/configurations/pod_security_context.md in pulp-operator.
     && chown -R nginx:nginx /var/cache/nginx /var/run/nginx.pid
 
 COPY --from=builder /etc/nginx/pulp/*.conf /etc/nginx/pulp
@@ -44,5 +55,9 @@ CONFIGJSON
 EOF
 
 # Run script uses standard ways to run the application
-USER nginx:nginx
+# No USER directive here (matches upstream's stable/Containerfile.webserver):
+# pulp-operator always overrides the runtime identity via the Pod's own
+# securityContext anyway, and leaving ownership at root:root + group-write
+# (set above) is what makes this image tolerate whatever UID it forces,
+# rather than requiring an exact UID/GID match.
 CMD nginx -g "daemon off;"
