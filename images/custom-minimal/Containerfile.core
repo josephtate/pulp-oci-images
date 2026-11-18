@@ -77,10 +77,10 @@ ENV PULP_CONTENT_WORKERS_MAX_REQUESTS_JITTER=${PULP_CONTENT_WORKERS_MAX_REQUESTS
 
 # Runtime only: python3 + the shared libs the wheels link against (openssl,
 # openldap, libffi), the en_US locale Pulp needs, and what the signing scripts
-# call (jq, curl, gpg, rpmsign, sq). sequoia-sq is kept for post-quantum signing.
+# call (jq, curl, gpg, rpmsign, openssl, sq). sequoia-sq is kept for post-quantum signing.
 # git-core: pulp-ansible imports GitPython, which fails at import without git.
 RUN dnf -y install --setopt=install_weak_deps=False \
-        python3 openssl-libs openldap libffi glibc-langpack-en \
+        python3 openssl openssl-libs openldap libffi glibc-langpack-en \
         jq which rpm-sign gnupg2 sequoia-sq git-core && \
     dnf clean all && rm -rf /var/cache/dnf
 
